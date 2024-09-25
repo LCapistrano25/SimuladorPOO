@@ -120,21 +120,51 @@ class Terminal:
         print(Fore.YELLOW + "3 - Deposito")
         print(Fore.YELLOW + "4 - Saque")
         print(Fore.YELLOW + "5 - Transferir")
-        print(Fore.YELLOW + "6 - Voltar\n")
+        print(Fore.YELLOW + "6 - Extrato")
+        print(Fore.YELLOW + "7 - Voltar\n")
 
-        option = self.validate_options("Escolha uma opção: ", int, [1, 2, 3, 4, 5, 6])
+        option = self.validate_options("Escolha uma opção: ", int, [1, 2, 3, 4, 5, 6, 7])
         return option
 
     def show_client_pix(self, accounts):
         print(Fore.BLUE + "\nContas disponíveis\n")
         for account in accounts:
             print(Fore.WHITE + f"{account.client.get_name()} - {account.get_pix_key()}")
+    
+    def show_extract(self, account):
+        print(Fore.GREEN + "\nExtrato\n")
+
+        if not [item for item in account.extract]:
+            print(Fore.RED + "Sem registro de transações.")
+            return  
+        
+        print(account.extract)
+
+        # Supondo que account.extract seja uma lista
+        if isinstance(account.extract, list):
+            for item in account.extract:
+                # Verificar se cada item é um dicionário
+                if isinstance(item, dict):  # Somente acessar se for um dicionário
+                    print(60*"-")
+                    print(Fore.BLUE + f"Data: {item['date']} - {item['type']} - Saldo: {item['value']}")
+                    print(Fore.WHITE + f"Cliente: {item['client']} - Agência: {item['agency']} - Conta: {item['number']}")
+                    print(Fore.GREEN + f"Valor de entrada: {item['value_in']} - Valor de saída: {item['value_out']}")
+
+                    if item['type'] == "transferencia_rementente":
+                        # Usar o método get para evitar KeyError
+                        destinatary_name = item.get('destinatary_name', 'Destinatário desconhecido')
+                        print(Fore.WHITE + f"Remetente: {item['client']} - Destinatário: {destinatary_name}")
+                else:
+                    print("Erro: item não é um dicionário.")
+            print(60*"-")
+        else:
+            print("Erro: account.extract não é uma lista.")
 
     def create_standart_clients(self, accounts):
         # Cria um cliente inicial para teste
         client = Client()
         client.set_name("Leonardo")
-        client.set_document("71362743119")
+        client.set_document("55")
 
         account = Account()
         account.set_client(client)
@@ -142,13 +172,13 @@ class Terminal:
         account.set_balance(1500)
         account.set_number(5555)
         account.set_limit(5000)
-        account.set_pix_key("71362743119")
+        account.set_pix_key("55")
 
         accounts.append(account)
 
         client_2 = Client()
         client_2.set_name("Daniel")
-        client_2.set_document("71362743118")
+        client_2.set_document("66")
 
         account_2 = Account()
         account_2.set_client(client_2)
@@ -156,6 +186,6 @@ class Terminal:
         account_2.set_balance(2500)
         account_2.set_number(5559)
         account_2.set_limit(50000)
-        account_2.set_pix_key("71362743118")
+        account_2.set_pix_key("66")
 
         accounts.append(account_2)

@@ -162,6 +162,8 @@ class Bank:
             elif option == 5:
                 self.handle_transfer(client)
             elif option == 6:
+                self.view_extract(client)
+            elif option == 7:
                 break
             else:
                 print(option)
@@ -217,6 +219,7 @@ class Bank:
             
             if "S" in confirm:
                 value = account_search.set_balance(remaining_balance)
+                account_search.set_extract("Saque")
                 print("Operação concluída!")
                 return value
             
@@ -249,6 +252,7 @@ class Bank:
             
             if "S" in confirm:
                 value = account_search.set_balance(deposit_total)
+                account_search.set_extract("Depósito")
                 print("Operação concluída!")
                 return value
             
@@ -256,49 +260,71 @@ class Bank:
                 print("Operação cancelada!")
                 return 0
 
-    # Realizar transferência
-    def handle_transfer(self, client):
-        self.terminal.show_client_pix(self.accounts)
-
-        finish = self.terminal.validate_input("\nPara qual cliente deseja mandar? \nDigite a chave pix: ", str, is_required=True)
-
-        account_search = None
-        my_account = None
-
+    def get_my_account(self, client):
         for account in self.accounts:
-            if account.client.get_document() == client.get_document():
-                my_account = account
-                continue
+            if account.get_client() == client:
+                return account
+        return None
+    
+    def get_account_by_pix(self, pix_key, my_account):
+        for account in self.accounts:
+            if my_account.get_pix_key() != pix_key:
+                if account.get_pix_key() == pix_key:
+                    return account
+        return None
+    
+    def _transfer_finish(self, my_account, account_search, value):
+        my_account.set_balance(my_account.get_balance() - value)
+        account_search.set_balance(account_search.get_balance() + value)
+        print("Transferência realizada com sucesso!")
+        return
+    
+    def _transfer(self, sender_account, recipient_account, value):
 
-            if account.get_pix_key() == finish:
-                account_search = account
-                break
-        
-        if account_search is None:
+        if recipient_account is None:
             print("\nCliente não encontrado!")
             return
-
-        option = self.terminal.validate_options(f"Deseja realizar uma transferência para o {account_search.get_client().get_name()}? Digite (S) ou (N): ", str, ["S", "N"])
+        
+        option = self.terminal.validate_options(f"Deseja realizar uma transferência para o {recipient_account.get_client().get_name()}? Digite (S) ou (N): ", str, ["S", "N"])
         
         if option == "S":
             value = self.terminal.validate_input("Digite o valor a ser transferido: ", float, is_required=True)
 
-            if  my_account.get_balance() > value:
+            if  sender_account.get_balance() > value:
                 option = self.terminal.validate_options(f"Deseja realizar a transferência no valor de R${value}?  Digite (S) ou (N): ", str, ["S", "N"])
 
                 if option == "S":
-                    balance_search = account_search.get_balance() + value
-                    account_search.set_balance(balance_search)
-
-                    my_balance = my_account.get_balance() - value
-                    my_account.set_balance(my_balance)
-                    
-                    print(f"Transferência realizada no valor de R${value} para {account_search.get_client().get_name()}.")
-                    return
+                    self._transfer_finish(sender_account, recipient_account, value)
+                    sender_account.set_extract("transferencia_rementente", destinatary=recipient_account, sender=sender_account, value_out=value)
+                    recipient_account.set_extract("transferencia_destinatario", destinatary=recipient_account, sender=sender_account, value_in=value)
+                    return True
                 else:
                     print("Operação cancelada!")
+                    return False
             else:
                 print("Você não tem saldo suficiente!")
+                return False
         else:
             print("Operação cancelada!")
+            return False
+
+    
+    # Realizar transferência
+    def handle_transfer(self, client):
+        self.terminal.show_client_pix(self.accounts)
+
+        recipient = self.terminal.validate_input("\nPara qual cliente deseja mandar? \nDigite a chave pix: ", str, is_required=True)
+
+        sender_account = self.get_my_account(client)
+        recipient_account = self.get_account_by_pix(recipient, sender_account)
+
+
+        trasicion = self._transfer(sender_account, recipient_account, 0)
+
+        if trasicion:
             return
+        
+    def view_extract(self, client):
+        account = self.get_my_account(client)
+        print(account.extract)
+        self.terminal.show_extract(account)
